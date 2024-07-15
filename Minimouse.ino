@@ -6,16 +6,18 @@
 #include "Motor.hpp"
 #include "PIDController.hpp"
 #include "Movement.hpp"
-
-//MPU6050 mpu(Wire);
-
+#include "Angle.hpp"
 
 
-#define MOT1PWM 9 // PIN 9 is a PWM pin
-#define MOT1DIR 10
+MPU6050 mpu(Wire);
 
-#define MOT2PWM 11 // PIN 9 is a PWM pin
-#define MOT2DIR 12
+#define MOT1PWM 11 // PIN 9 is a PWM pin
+#define MOT1DIR 12
+
+#define MOT2PWM 9 // PIN 9 is a PWM pin
+#define MOT2DIR 10
+
+
 
 #define WHEELRAD 16
 #define AXLELENGTH 98
@@ -25,60 +27,86 @@
 mtrn3100::Motor motor1(MOT1PWM,MOT1DIR);
 mtrn3100::Motor motor2(MOT2PWM,MOT2DIR);
 
-#define EN_1_A 3 //These are the pins for the PCB encoder
-#define EN_1_B 8 //These are the pins for the PCB encoder
-#define EN_2_A 2 //These are the pins for the PCB encoder
-#define EN_2_B 7 //These are the pins for the PCB encoder
+#define EN_1_A 2 //These are the pins for the PCB encoder
+#define EN_1_B 7 //These are the pins for the PCB encoder
+#define EN_2_A 3 //These are the pins for the PCB encoder
+#define EN_2_B 8 //These are the pins for the PCB encoder
 
-mtrn3100::DualEncoder encoder(EN_1_A, EN_1_B,EN_2_A, EN_2_B);
+mtrn3100::DualEncoder encoder(EN_1_A, EN_1_B, EN_2_A, EN_2_B);
 mtrn3100::EncoderOdometry encoder_odometry(WHEELRAD,AXLELENGTH); //TASK1 TODO: IDENTIFY THE WHEEL RADIUS AND AXLE LENGTH
 mtrn3100::IMUOdometry IMU_odometry;
-mtrn3100::PIDController controllerLeft(200,5, 5);
-mtrn3100::PIDController controllerRight(200,5, 5);
-//mtrn3100::Angle imu()
+mtrn3100::PIDController controllerLeft(80,1, 0);
+mtrn3100::PIDController controllerRight(80,1, 0);
+//mtrn3100::Angle imu;
 mtrn3100::Movement movement(controllerLeft, controllerRight, encoder);
 
-void setup() {
-    Serial.begin(115200);
-    //Wire.begin();
+    int count = 0;
+    bool start_count = false;
+    const char* magicString = "flfrlfll";
+    int mag = 0;
+    bool exe = false;
 
-    //Set up the IMU
-    // byte status = mpu.begin();
-    // Serial.print(F("MPU6050 status: "));
-    // Serial.println(status);
-    // while(status!=0){ } // stop everything if could not connect to MPU6050
+void setup() {
+  
+    Serial.begin(115200);
     
-    // Serial.println(F("Calculating offsets, do not move MPU6050"));
-    // delay(1000);
-    // mpu.calcOffsets(true,true);
-    // Serial.println("Done!\n");
-    //controllerLeft.zeroAndSetTarget(encoder.getLeftRotation(), DISTANCE / WHEELRAD);
-    //controllerRight.zeroAndSetTarget(encoder.getRightRotation(), -DISTANCE / WHEELRAD);
-    movement.forward(300);
-    string magicString = "fllrlflrfflrlflrlfllrlfllrl"
-    // Serial.println(controllerLeft.compute(encoder.getLeftRotation()));
-    // Serial.println(encoder.getLeftRotation());
+//     Wire.begin();
+// Serial.println("HERE1");
+//     // Set up the IMU
+//     byte status = mpu.begin();
+//     Serial.println("HERE2");
+//     Serial.print(F("MPU6050 status: "));
+//     Serial.println(status);
+//     while (status != 0) { } // stop everything if could not connect to MPU6050
+
+//     Serial.println(F("Calculating offsets, do not move MPU6050"));
+//     delay(1000);
+//     mpu.calcOffsets(true, true);
+//     Serial.println("Done!\n");
+    
 }
 
 
 void loop() {
 
-//UNCOMMENT FOR TASK 2: 
-//THE DELAY IS REQUIRED OTHERWISE THE ENCODER DIFFERENCE IS TOO SMALL
-    //delay(50);
-    //encoder_odometry.update(encoder.getLeftRotation(),encoder.getRightRotation());
+    if (start_count == true) {
+      count++;
+    }
+  
+    if (magicString[mag] == 'f' && exe == false) {
+      exe = true;
+      movement.forward(200);
+    }
+    else if (magicString[mag] == 'l' && exe == false) {
+      //Serial.print("HERELLL");
+      exe = true;
+      movement.left();
+    }
+    else if (magicString[mag] == 'r' && exe == false) {
+      exe = true;
+      movement.right();
+    }
+    else if (magicString[mag] == '\0' && exe == false) {
+      exe = true;
+      movement.stop();
+    }
    
-    Serial.print("LEFT -->  ");
-    //controllerLeft.compute(encoder.getLeftRotation());
     motor1.setPWM(controllerLeft.compute(encoder.getLeftRotation()));
-    Serial.print("RIGHT -->  ");
-    //controllerRight.compute(encoder.getRightRotation());
     motor2.setPWM(controllerRight.compute(encoder.getRightRotation()));
 
+    if (abs(controllerLeft.getError()) <= 0.3 && abs(controllerRight.getError()) <= 0.3) {
+      start_count = true;
+    }
 
-  
+    if (count >= 100) {
+      count = 0;
+      start_count = false;
+      mag++;
+      exe = false;
 
-  delay(30);
+    }
+
+  delay(40);
 
     
 

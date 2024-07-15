@@ -15,6 +15,7 @@ public:
         // TODO: Set both pins as output
         pinMode(pwm_pin, OUTPUT);
         pinMode(dir_pin, OUTPUT);
+        prev_pwm = 0;
     }
 
 
@@ -22,6 +23,9 @@ public:
     // NOTE: a pwm signal > 255 could cause troubles as such ensure that pwm is clamped between 0 - 255.
 
     void setPWM(int16_t pwm) {
+      
+      
+      // Serial.println(diff);
 
       if (pwm >= 0) {
         digitalWrite(dir_pin, HIGH);
@@ -30,9 +34,21 @@ public:
         digitalWrite(dir_pin, LOW);
       }
       int output = abs(pwm);
-      if (output > 255) {
-        output = 255;
+      if (output > 225) {
+        output = 225;
       }
+      int diff = abs(output - getPwm());
+
+      if (diff >= 50) {
+        output = prev_pwm + (diff / 40);
+      }
+      prev_pwm = output;
+
+      if (output <= 20) {
+        output = 0;
+      }
+    
+ 
       
       
       analogWrite(pwm_pin, output);
@@ -40,9 +56,14 @@ public:
       // TODO: Output PWM signal between 0 - 255.
     }
 
+int getPwm() {
+    return prev_pwm;
+}
+
 private:
     const uint8_t pwm_pin;
     const uint8_t dir_pin;
+    int prev_pwm;
 };
 
 }  // namespace mtrn3100
